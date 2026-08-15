@@ -2,7 +2,7 @@ import os
 import torch
 import torch.utils.data
 from PIL import Image
-from datasets.data_augment import PairCompose, PairToTensor, PairRandomHorizontalFilp
+from datasets.data_augment import PairCompose, PairToTensor, PairRandomHorizontalFilp, PairRandomCrop
 
 
 class LLdataset:
@@ -48,6 +48,7 @@ class AllWeatherDataset(torch.utils.data.Dataset):
 
         if train:
             self.transforms = PairCompose([
+                PairRandomCrop(self.patch_size, pad_if_needed=True),
                 PairRandomHorizontalFilp(),
                 PairToTensor()
             ])

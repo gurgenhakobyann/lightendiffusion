@@ -157,8 +157,6 @@ class Net(nn.Module):
             t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[:low_condition_norm.shape[0]].to(inputs.device)
             a = (1 - b).cumprod(dim=0).index_select(0, t).view(-1, 1, 1, 1)
 
-            e = torch.randn_like(low_condition_norm)
-
             retinex_cfg = getattr(self.config, 'retinex', None)
             mode = getattr(retinex_cfg, 'mode', 'classical') if retinex_cfg is not None else 'classical'
 
@@ -180,11 +178,29 @@ class Net(nn.Module):
                 high_input_norm = utils.data_transform(classical_retinex_compose(low_R, high_L))
                 reference_fea = low_R * torch.pow(low_L, 0.2)
 
+            # Ensure feature spatial dimensions are multiples of 16 for UNet downsampling levels
+            _, _, feat_h, feat_w = low_condition_norm.shape
+            feat_h_16 = int(16 * np.ceil(feat_h / 16.0))
+            feat_w_16 = int(16 * np.ceil(feat_w / 16.0))
+            pad_h = feat_h_16 - feat_h
+            pad_w = feat_w_16 - feat_w
+            if pad_h > 0 or pad_w > 0:
+                low_condition_norm = F.pad(low_condition_norm, (0, pad_w, 0, pad_h), mode='reflect')
+                high_input_norm = F.pad(high_input_norm, (0, pad_w, 0, pad_h), mode='reflect')
+                reference_fea = F.pad(reference_fea, (0, pad_w, 0, pad_h), mode='reflect')
+
+            e = torch.randn_like(low_condition_norm)
             x = high_input_norm * a.sqrt() + e * (1.0 - a).sqrt()
             noise_output = self.Unet(torch.cat([low_condition_norm, x], dim=1), t.float())
 
             pred_fea = self.sample_training(low_condition_norm, b)
             pred_fea = utils.inverse_data_transform(pred_fea)
+
+            if pad_h > 0 or pad_w > 0:
+                noise_output = noise_output[:, :, :feat_h, :feat_w]
+                e = e[:, :, :feat_h, :feat_w]
+                pred_fea = pred_fea[:, :, :feat_h, :feat_w]
+                reference_fea = reference_fea[:, :, :feat_h, :feat_w]
 
             data_dict["noise_output"] = noise_output
             data_dict["e"] = e
