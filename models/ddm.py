@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import utils
 from models.unet import DiffusionUNet
 from models.decom import CTDN
+from models.generalized_retinex import generalized_retinex_compose, classical_retinex_compose
 
 
 class EMAHelper(object):
@@ -108,7 +109,11 @@ class Net(nn.Module):
 
     @staticmethod
     def load_stage1(model, model_dir):
-        checkpoint = utils.logging.load_checkpoint(os.path.join(model_dir, 'stage1_weight.pth.tar'), 'cuda')
+        path = os.path.join(model_dir, 'stage1_weight.pth.tar')
+        if not os.path.isfile(path):
+            if os.path.isfile('stage1_weight.pth.tar'):
+                path = 'stage1_weight.pth.tar'
+        checkpoint = utils.logging.load_checkpoint(path, 'cuda' if torch.cuda.is_available() else 'cpu')
         model.load_state_dict(checkpoint['model'], strict=True)
         return model
 
@@ -154,14 +159,32 @@ class Net(nn.Module):
 
             e = torch.randn_like(low_condition_norm)
 
-            high_input_norm = utils.data_transform(low_R * high_L)
+            retinex_cfg = getattr(self.config, 'retinex', None)
+            mode = getattr(retinex_cfg, 'mode', 'classical') if retinex_cfg is not None else 'classical'
+
+            if mode == 'generalized':
+                tau_x0 = float(getattr(retinex_cfg, 'tau_x0', 1.0))
+                lam_x0 = float(getattr(retinex_cfg, 'lambda_x0', 1.0))
+                var_x0 = float(getattr(retinex_cfg, 'vartheta_x0', 1.0))
+
+                tau_scc = float(getattr(retinex_cfg, 'tau_scc', 1.0))
+                lam_scc = float(getattr(retinex_cfg, 'lambda_scc', 1.0))
+                var_scc = float(getattr(retinex_cfg, 'vartheta_scc', 0.2))
+                eps = float(getattr(retinex_cfg, 'eps', 1e-4))
+
+                high_input = generalized_retinex_compose(low_R, high_L, tau=tau_x0, lam=lam_x0, vartheta=var_x0, eps=eps)
+                high_input_norm = utils.data_transform(high_input)
+
+                reference_fea = generalized_retinex_compose(low_R, low_L, tau=tau_scc, lam=lam_scc, vartheta=var_scc, eps=eps)
+            else:
+                high_input_norm = utils.data_transform(classical_retinex_compose(low_R, high_L))
+                reference_fea = low_R * torch.pow(low_L, 0.2)
 
             x = high_input_norm * a.sqrt() + e * (1.0 - a).sqrt()
             noise_output = self.Unet(torch.cat([low_condition_norm, x], dim=1), t.float())
 
             pred_fea = self.sample_training(low_condition_norm, b)
             pred_fea = utils.inverse_data_transform(pred_fea)
-            reference_fea = low_R * torch.pow(low_L, 0.2)
 
             data_dict["noise_output"] = noise_output
             data_dict["e"] = e

@@ -5,7 +5,7 @@ data:
     patch_size: 512
     channels: 3
     num_workers: 4
-    data_dir: "/data/Image_restoration/LSRW_dataset"
+    data_dir: "LOLdataset"
     ckpt_dir: "ckpt/stage2"
     conditional: True
 
@@ -41,3 +41,15 @@ optim:
     lr: 0.00002
     amsgrad: False
     eps: 0.00000001
+
+retinex:
+    mode: "generalized"     # "classical" or "generalized"
+    # Forward-process target x0 = compose(R_low, L_high)
+    tau_x0: 1.0
+    lambda_x0: 1.0
+    vartheta_x0: 1.0
+    # Self-constrained consistency pseudo-label F_tilde_low = compose(R_low, L_low)
+    tau_scc: 1.0
+    lambda_scc: 1.0
+    vartheta_scc: 0.2
+    eps: 0.0001

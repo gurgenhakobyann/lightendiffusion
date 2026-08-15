@@ -10,16 +10,21 @@ class LLdataset:
         self.config = config
 
     def get_loaders(self):
-        train_dataset = AllWeatherDataset(self.config.data.data_dir,
-                                          patch_size=self.config.data.patch_size,
-                                          filelist='{}_train.txt'.format(self.config.data.train_dataset))
+        train_list_path = os.path.join(self.config.data.data_dir, '{}_train.txt'.format(self.config.data.train_dataset))
+        if os.path.exists(train_list_path):
+            train_dataset = AllWeatherDataset(self.config.data.data_dir,
+                                              patch_size=self.config.data.patch_size,
+                                              filelist='{}_train.txt'.format(self.config.data.train_dataset))
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.config.training.batch_size,
+                                                       shuffle=True, num_workers=self.config.data.num_workers,
+                                                       pin_memory=True)
+        else:
+            train_loader = None
+
         val_dataset = AllWeatherDataset(self.config.data.data_dir,
                                         patch_size=self.config.data.patch_size,
                                         filelist='{}_val.txt'.format(self.config.data.val_dataset), train=False)
 
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.config.training.batch_size,
-                                                   shuffle=True, num_workers=self.config.data.num_workers,
-                                                   pin_memory=True)
         val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.config.sampling.batch_size,
                                                  shuffle=False, num_workers=self.config.data.num_workers,
                                                  pin_memory=True)

@@ -1,0 +1,28 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Checkpoints and weights (large binary files exceeding GitHub limits)
+*.pth
+*.pth.tar
+ckpt/
+
+# Datasets and archives
+*.zip
+*.tar
+*.gz
+LOLdataset/
+data/
+
+# Output directories
+results/
+*.log
+
+# Environments and IDE
+.env
+.venv
+env/
+venv/
+.idea/
+.vscode/
