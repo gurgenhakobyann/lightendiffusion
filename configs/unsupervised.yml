@@ -45,11 +45,11 @@ optim:
 retinex:
     mode: "generalized"     # "classical" or "generalized"
     # Forward-process target x0 = compose(R_low, L_high)
-    tau_x0: 1.0
-    lambda_x0: 1.0
-    vartheta_x0: 1.0
+    tau_x0: 1.25
+    lambda_x0: 1.40
+    vartheta_x0: 0.80
     # Self-constrained consistency pseudo-label F_tilde_low = compose(R_low, L_low)
     tau_scc: 1.0
     lambda_scc: 1.0
-    vartheta_scc: 0.1
+    vartheta_scc: 0.10
     eps: 0.0001
