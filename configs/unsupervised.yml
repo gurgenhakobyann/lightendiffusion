@@ -51,5 +51,5 @@ retinex:
     # Self-constrained consistency pseudo-label F_tilde_low = compose(R_low, L_low)
     tau_scc: 1.0
     lambda_scc: 1.0
-    vartheta_scc: 0.2
+    vartheta_scc: 0.1
     eps: 0.0001

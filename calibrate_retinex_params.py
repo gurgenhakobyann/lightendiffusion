@@ -193,7 +193,10 @@ def main():
         raise FileNotFoundError(f"Checkpoint not found at {args.checkpoint}")
 
     ctdn = CTDN(channels=64).to(device)
-    ckpt = torch.load(args.checkpoint, map_location=device)
+    try:
+        ckpt = torch.load(args.checkpoint, map_location=device, weights_only=False)
+    except TypeError:
+        ckpt = torch.load(args.checkpoint, map_location=device)
     state_dict = ckpt["model"] if "model" in ckpt else ckpt
     ctdn.load_state_dict(state_dict, strict=True)
     ctdn.eval()
