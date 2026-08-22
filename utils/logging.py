@@ -18,6 +18,12 @@ def save_checkpoint(state, filename):
 
 def load_checkpoint(path, device):
     if device is None:
-        return torch.load(path)
+        try:
+            return torch.load(path, weights_only=False)
+        except TypeError:
+            return torch.load(path)
     else:
-        return torch.load(path, map_location=device)
+        try:
+            return torch.load(path, map_location=device, weights_only=False)
+        except TypeError:
+            return torch.load(path, map_location=device)

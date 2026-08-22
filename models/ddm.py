@@ -108,7 +108,15 @@ class Net(nn.Module):
 
     @staticmethod
     def load_stage1(model, model_dir):
-        checkpoint = utils.logging.load_checkpoint(os.path.join(model_dir, 'stage1_weight.pth.tar'), 'cuda')
+        path = os.path.join(model_dir, 'stage1_weight.pth.tar')
+        if not os.path.isfile(path):
+            if os.path.isfile('stage1_weight.pth.tar'):
+                path = 'stage1_weight.pth.tar'
+            elif os.path.isfile(os.path.expanduser('~/stage1_weight.pth.tar')):
+                path = os.path.expanduser('~/stage1_weight.pth.tar')
+            elif os.path.isfile(f'/mnt/weka/{os.environ.get("USER", "")}/stage1_weight.pth.tar'):
+                path = f'/mnt/weka/{os.environ.get("USER", "")}/stage1_weight.pth.tar'
+        checkpoint = utils.logging.load_checkpoint(path, 'cuda' if torch.cuda.is_available() else 'cpu')
         model.load_state_dict(checkpoint['model'], strict=True)
         return model
 
