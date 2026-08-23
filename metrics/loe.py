@@ -5,7 +5,7 @@ Based on: Wang et al., "Naturalness Preserved Enhancement Algorithm for Non-Unif
 """
 
 import numpy as np
-import cv2
+from PIL import Image
 import torch
 
 
@@ -56,11 +56,13 @@ def compute_loe(img1, img2, downsample_size=(100, 100)):
     else:
         L2 = img2
 
-    # Downsample for computational efficiency (Wang et al. standard is 100x100 or 50x50)
+    # Downsample for computational efficiency (Wang et al. standard is 100x100 or 50x50) using PIL
     if downsample_size is not None:
         w, h = downsample_size
-        L1 = cv2.resize(L1, (w, h), interpolation=cv2.INTER_AREA)
-        L2 = cv2.resize(L2, (w, h), interpolation=cv2.INTER_AREA)
+        L1_pil = Image.fromarray((L1 * 255.0).astype(np.uint8))
+        L2_pil = Image.fromarray((L2 * 255.0).astype(np.uint8))
+        L1 = np.array(L1_pil.resize((w, h), resample=Image.BILINEAR), dtype=np.float32) / 255.0
+        L2 = np.array(L2_pil.resize((w, h), resample=Image.BILINEAR), dtype=np.float32) / 255.0
 
     # Flatten
     l1_flat = L1.flatten()
