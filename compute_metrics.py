@@ -9,14 +9,22 @@ from metrics.loe import compute_loe
 
 
 def main():
+    # Restored images go to results/LOLv1 by default (from restoration.py)
     restored_dir = os.path.join("results", "LOLv1")
     if not os.path.isdir(restored_dir):
-        # Fallback check
         restored_dir = "results"
 
-    gt_dir = os.path.join("LOLdataset", "our485", "high")
-    if not os.path.isdir(gt_dir):
-        gt_dir = os.path.join("LOLdataset", "eval15", "high")
+    # Ground truth can be in LOLdataset/our485/high or LOLdataset/eval15/high
+    gt_dir = None
+    for candidate in [
+        os.path.join("LOLdataset", "our485", "high"),
+        os.path.join("LOLdataset", "eval15", "high"),
+        os.path.join("our485", "high"),
+        os.path.join("eval15", "high"),
+    ]:
+        if os.path.isdir(candidate):
+            gt_dir = candidate
+            break
 
     if not os.path.isdir(gt_dir):
         print(f"Error: GT directory not found at {gt_dir}")

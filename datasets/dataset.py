@@ -326,14 +326,29 @@ class LOLv1ValDataset(torch.utils.data.Dataset):
             '778.png', '780.png'
         ]
         self.pairs = []
+        # Try multiple candidate roots to handle various directory layouts
+        candidate_roots = [
+            data_dir,
+            os.path.join(data_dir, "LOLdataset"),
+            os.path.join(data_dir, "lol"),
+        ]
         for f in eval_names:
-            low_p = os.path.join(data_dir, "our485", "low", f)
-            high_p = os.path.join(data_dir, "our485", "high", f)
-            if not os.path.exists(low_p):
-                low_p = os.path.join(data_dir, "eval15", "low", f)
-                high_p = os.path.join(data_dir, "eval15", "high", f)
-            if os.path.exists(low_p):
-                self.pairs.append((low_p, high_p))
+            found = False
+            for root in candidate_roots:
+                for split in ["our485", "eval15"]:
+                    low_p = os.path.join(root, split, "low", f)
+                    high_p = os.path.join(root, split, "high", f)
+                    if os.path.exists(low_p):
+                        self.pairs.append((low_p, high_p))
+                        found = True
+                        break
+                if found:
+                    break
+        if not self.pairs:
+            raise FileNotFoundError(
+                f"LOLv1ValDataset: Could not find any eval images in {data_dir}. "
+                f"Checked: {candidate_roots}"
+            )
 
         self.transforms = PairCompose([PairToTensor()])
 
