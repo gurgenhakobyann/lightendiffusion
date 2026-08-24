@@ -212,7 +212,11 @@ class DenoisingDiffusion(object):
 
     def load_ddm_ckpt(self, load_path, ema=False):
         checkpoint = utils.logging.load_checkpoint(load_path, None)
+        self.start_epoch = checkpoint.get('epoch', 0)
+        self.step = checkpoint.get('step', 0)
         self.model.load_state_dict(checkpoint['state_dict'], strict=True)
+        self.optimizer.load_state_dict(checkpoint['optimizer'])
+        self.ema_helper.load_state_dict(checkpoint['ema_helper'])
         if ema:
             self.ema_helper.ema(self.model)
         print("=> loaded checkpoint {} step {}".format(load_path, self.step))
