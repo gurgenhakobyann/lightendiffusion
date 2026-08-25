@@ -173,6 +173,50 @@ def run_grid_search(ctdn, cached_data, tau_grid, lambda_grid, vartheta_grid, sta
     return results
 
 
+def run_comparison(ctdn, cached_data, best_result, eps=1e-4):
+    """
+    Evaluate a fixed set of baseline + optimal configs and print a comparison table.
+    Baselines:
+      - Classical Retinex  : tau=1, lambda=1, vartheta=1  (original LightenDiffusion)
+      - Gamma mild         : tau=1, lambda=1, vartheta=0.7 (common photo app gamma)
+      - Gamma strong       : tau=1, lambda=1, vartheta=0.5 (strong gamma correction)
+      - Random A           : tau=0.75, lambda=0.6, vartheta=0.3
+      - Random B           : tau=1.5,  lambda=1.4, vartheta=0.75
+      - Grid-Search Optimal: best values from grid search
+    """
+    configs = [
+        {"name": "Classical Retinex (I=R·L)",   "tau": 1.00, "lam": 1.00, "vartheta": 1.00},
+        {"name": "Gamma mild (ϑ=0.7)",           "tau": 1.00, "lam": 1.00, "vartheta": 0.70},
+        {"name": "Gamma strong (ϑ=0.5)",         "tau": 1.00, "lam": 1.00, "vartheta": 0.50},
+        {"name": "Random A (τ=0.75,λ=0.6,ϑ=0.3)","tau": 0.75, "lam": 0.60, "vartheta": 0.30},
+        {"name": "Random B (τ=1.5,λ=1.4,ϑ=0.75)","tau": 1.50, "lam": 1.40, "vartheta": 0.75},
+        {"name": f"Grid-Search Optimal (best)",
+         "tau": best_result["tau"], "lam": best_result["lambda"], "vartheta": best_result["vartheta"]},
+    ]
+
+    print("\n" + "=" * 90)
+    print("COMPARISON TABLE: Baseline vs Grid-Search Optimal")
+    print(f"{'Config':<38} {'tau':<6} {'lambda':<8} {'vartheta':<10} {'LOE(in)':<10} {'LOE(ref)':<10} {'Combined':<10}")
+    print("-" * 90)
+
+    for cfg in configs:
+        loe_in_list, loe_ref_list = [], []
+        for item in cached_data:
+            loe_in, loe_ref = decode_and_evaluate_candidate(
+                ctdn, item, cfg["tau"], cfg["lam"], cfg["vartheta"], eps=eps
+            )
+            loe_in_list.append(loe_in)
+            loe_ref_list.append(loe_ref)
+        avg_in  = float(np.mean(loe_in_list))
+        avg_ref = float(np.mean(loe_ref_list))
+        combined = 0.5 * avg_in + 0.5 * avg_ref
+        print(f"{cfg['name']:<38} {cfg['tau']:<6.2f} {cfg['lam']:<8.2f} {cfg['vartheta']:<10.2f} "
+              f"{avg_in:<10.2f} {avg_ref:<10.2f} {combined:<10.2f}")
+
+    print("=" * 90)
+    print("Lower LOE = better lightness order preservation.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Calibrate Generalized Retinex parameters using LOE search.")
     parser.add_argument("--config", default="configs/unsupervised.yml", type=str, help="Path to config file")
@@ -182,6 +226,8 @@ def main():
     parser.add_argument("--target", choices=["scc", "x0"], default="scc", help="Target composition to calibrate")
     parser.add_argument("--stage1_weight", type=float, default=0.5, help="Weight for input LOE vs reference LOE")
     parser.add_argument("--save_json", default="", type=str, help="Path to save ranked results as JSON")
+    parser.add_argument("--compare", action="store_true",
+                        help="After grid search, also print a comparison table with classical/random/optimal configs")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -236,6 +282,9 @@ def main():
     best = results[0]
     print(f"\nBest Optimum: tau={best['tau']}, lambda={best['lambda']}, vartheta={best['vartheta']}")
     print(f"LOE(input)={best['loe_input']:.2f}, LOE(ref)={best['loe_ref']:.2f}, Combined={best['combined']:.2f}")
+
+    if args.compare:
+        run_comparison(ctdn, cached_data, best)
 
     if args.save_json:
         with open(args.save_json, "w") as f:
