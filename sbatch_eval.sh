@@ -1,9 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=lightendiff_eval
 #SBATCH --partition=research
-#SBATCH --mem=16G
+#SBATCH --time=01:00:00
+#SBATCH --mem=24G
 #SBATCH --cpus-per-task=8
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:h100:1
 #SBATCH --output=slurm_eval_%j.out
 #SBATCH --error=slurm_eval_%j.err
 
@@ -12,10 +13,15 @@ nvidia-smi
 
 cd $SLURM_SUBMIT_DIR
 
-# 1. Run diffusion inference on LOL test images
-/mnt/weka/ghakobyan/.conda/envs/lightendiff/bin/python evaluate.py --config unsupervised.yml --resume ckpt/stage2/model_latest.pth.tar
+PYTHON=/mnt/weka/ghakobyan/.conda/envs/lightendiff/bin/python
+CKPT=ckpt/stage2/model_latest.pth.tar
 
-# 2. Compute PSNR, SSIM, and LOE
-/mnt/weka/ghakobyan/.conda/envs/lightendiff/bin/python compute_metrics.py
+mkdir -p results/LOLv1 results/LSRW results/DICM results/NPE results/VV
+
+# 1. Run diffusion inference on LOL test images
+$PYTHON evaluate.py --config unsupervised.yml --resume $CKPT
+
+# 2. Compute full benchmark table (LOL, LSRW, DICM, NPE, VV)
+$PYTHON evaluate_full_benchmarks.py --results_root results --data_root .
 
 echo "=== Evaluation job finished at $(date) ==="

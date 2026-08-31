@@ -267,14 +267,23 @@ class DenoisingDiffusion(object):
                     self.model.eval()
                     self.sample_validation_patches(val_loader, self.step)
 
-                    utils.logging.save_checkpoint({'step': self.step,
-                                                   'epoch': epoch + 1,
-                                                   'state_dict': self.model.state_dict(),
-                                                   'optimizer': self.optimizer.state_dict(),
-                                                   'ema_helper': self.ema_helper.state_dict(),
-                                                   'params': self.args,
-                                                   'config': self.config},
+                    ckpt_data = {'step': self.step,
+                                 'epoch': epoch + 1,
+                                 'state_dict': self.model.state_dict(),
+                                 'optimizer': self.optimizer.state_dict(),
+                                 'ema_helper': self.ema_helper.state_dict(),
+                                 'params': self.args,
+                                 'config': self.config}
+
+                    # Always overwrite model_latest for easy resuming
+                    utils.logging.save_checkpoint(ckpt_data,
                                                   filename=os.path.join(self.config.data.ckpt_dir, 'model_latest'))
+
+                    # Every 10,000 steps, also save a permanent milestone checkpoint
+                    if self.step % 10000 == 0:
+                        step_ckpt = os.path.join(self.config.data.ckpt_dir, f'model_step_{self.step}')
+                        utils.logging.save_checkpoint(ckpt_data, filename=step_ckpt)
+                        print(f'Saved permanent checkpoint: {step_ckpt}.pth.tar')
 
     def noise_estimation_loss(self, output):
         pred_fea, reference_fea = output["pred_fea"], output["reference_fea"]
