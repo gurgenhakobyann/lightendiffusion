@@ -82,10 +82,14 @@ def eval_unpaired(res_dir):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="unsupervised.yml", type=str)
     parser.add_argument("--resume", default="ckpt/stage2/model_latest.pth.tar", type=str)
+    parser.add_argument("--mode", default="evaluation", type=str)
+    parser.add_argument("--image_folder", default="results_full", type=str)
+    parser.add_argument("--gamma", default=False, action="store_true")
     args = parser.parse_args()
 
-    with open("configs/unsupervised.yml", "r") as f:
+    with open(f"configs/{args.config}", "r") as f:
         config_dict = yaml.safe_load(f)
     config = dict2namespace(config_dict)
     config.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -102,21 +106,20 @@ def main():
         DATASET = datasets.__dict__[config.data.type](config)
         _, val_loader = DATASET.get_loaders()
         if val_loader:
-            restorer.image_folder = f"results_full/{bench}"
-            os.makedirs(f"results_full/{bench}", exist_ok=True)
+            os.makedirs(os.path.join(args.image_folder, bench), exist_ok=True)
             restorer.restore(val_loader)
 
     # 2. Compute Metrics across all 5
     lol_gt = "LOLdataset/our485/high"
     if not os.path.isdir(lol_gt): lol_gt = "/mnt/weka/ghakobyan/LOLdataset/our485/high"
-    lol_res = eval_paired("results_full/LOLv1", lol_gt)
+    lol_res = eval_paired(os.path.join(args.image_folder, "LOLv1"), lol_gt)
 
     lsrw_gt = "/mnt/weka/ghakobyan/LSRW/Eval/Eval/Huawei/high"
-    lsrw_res = eval_paired("results_full/LSRW", lsrw_gt)
+    lsrw_res = eval_paired(os.path.join(args.image_folder, "LSRW"), lsrw_gt)
 
-    dicm_res = eval_unpaired("results_full/DICM")
-    npe_res = eval_unpaired("results_full/NPE")
-    vv_res = eval_unpaired("results_full/VV")
+    dicm_res = eval_unpaired(os.path.join(args.image_folder, "DICM"))
+    npe_res = eval_unpaired(os.path.join(args.image_folder, "NPE"))
+    vv_res = eval_unpaired(os.path.join(args.image_folder, "VV"))
 
     print("\n" + "=" * 90)
     print(f"{'FULL BENCHMARK TABLE FOR LightenDiffusion (400k+ STEPS)':^90}")
