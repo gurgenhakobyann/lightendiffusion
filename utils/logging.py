@@ -16,14 +16,10 @@ def save_checkpoint(state, filename):
     torch.save(state, filename + '.pth.tar')
 
 
-def load_checkpoint(path, device):
+def load_checkpoint(path, device=None):
     if device is None:
-        try:
-            return torch.load(path, weights_only=False)
-        except TypeError:
-            return torch.load(path)
-    else:
-        try:
-            return torch.load(path, map_location=device, weights_only=False)
-        except TypeError:
-            return torch.load(path, map_location=device)
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    try:
+        return torch.load(path, map_location=device, weights_only=False)
+    except TypeError:
+        return torch.load(path, map_location=device)
