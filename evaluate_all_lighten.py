@@ -73,7 +73,7 @@ def eval_unpaired(res_dir):
         r_p = os.path.join(res_dir, f)
         r_img = np.array(Image.open(r_p).convert("RGB"), dtype=np.float32) / 255.0
         n = compute_niqe(r_img)
-        p = compute_pi(r_img, niqe_val=n)
+        p = compute_pi(r_img, niqe_score=n)
         niqes.append(n)
         pis.append(p)
     if not niqes: return None
