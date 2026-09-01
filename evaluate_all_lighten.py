@@ -114,8 +114,14 @@ def main():
     if not os.path.isdir(lol_gt): lol_gt = "/mnt/weka/ghakobyan/LOLdataset/our485/high"
     lol_res = eval_paired(os.path.join(args.image_folder, "LOLv1"), lol_gt)
 
-    lsrw_gt = "/mnt/weka/ghakobyan/LSRW/Eval/Eval/Huawei/high"
-    lsrw_res = eval_paired(os.path.join(args.image_folder, "LSRW"), lsrw_gt)
+    # Check both Huawei and Nikon folders for LSRW Ground Truth
+    lsrw_res = None
+    for sub in ["Nikon", "Huawei"]:
+        cand_gt = f"/mnt/weka/ghakobyan/LSRW/Eval/Eval/{sub}/high"
+        res_cand = eval_paired(os.path.join(args.image_folder, "LSRW"), cand_gt)
+        if res_cand is not None:
+            lsrw_res = res_cand
+            break
 
     dicm_res = eval_unpaired(os.path.join(args.image_folder, "DICM"))
     npe_res = eval_unpaired(os.path.join(args.image_folder, "NPE"))
