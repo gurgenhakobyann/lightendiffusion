@@ -95,11 +95,15 @@ def main():
         step_label = f"Step {step_num}" if step_num >= 0 else os.path.basename(ckpt_path)
         print(f"\nEvaluating {ckpt_path} ({step_label})...")
 
+        # Set a unique image_folder per checkpoint so results don't overwrite each other
+        step_folder = f"step_{step_num}" if step_num >= 0 else "latest"
+        args.image_folder = os.path.join("results_leaderboard", step_folder)
         args.resume = ckpt_path
+
         diffusion = DenoisingDiffusion(args, config)
         restorer = DiffusiveRestoration(diffusion, args, config)
 
-        save_dir = os.path.join(args.image_folder, f"step_{step_num}" if step_num >= 0 else "latest", "LOLv1")
+        save_dir = os.path.join(args.image_folder, "LOLv1")
         os.makedirs(save_dir, exist_ok=True)
         restorer.restore(val_loader)
 
@@ -131,6 +135,8 @@ def main():
                 "loe": mean_l
             })
             print(f"--> {step_label}: PSNR = {mean_p:.3f} dB | SSIM = {mean_s:.4f} | LOE = {mean_l:.2f}")
+        else:
+            print(f"[WARNING] No matching result files found in {save_dir}")
 
     # Sort results by SSIM descending
     results.sort(key=lambda x: x["ssim"], reverse=True)
