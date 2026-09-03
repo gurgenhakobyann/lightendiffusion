@@ -9,29 +9,36 @@ def simplest_color_balance(img, low_clip=0.01, high_clip=0.99):
     Simplest Color Balance (histogram percentile stretching).
     Works on 2D or 3D numpy arrays in range [0, 1].
     """
-    total = img.shape[0] * img.shape[1]
-    for i in range(img.shape[2]):
-        channel = img[:, :, i]
+    img_out = np.array(img, copy=True)
+    orig_ndim = img_out.ndim
+    if orig_ndim == 2:
+        img_out = img_out[:, :, None]
+    for i in range(img_out.shape[2]):
+        channel = img_out[:, :, i]
         low_val = np.percentile(channel, low_clip * 100)
         high_val = np.percentile(channel, high_clip * 100)
         if high_val > low_val:
             channel = np.clip((channel - low_val) / (high_val - low_val), 0.0, 1.0)
-        img[:, :, i] = channel
-    return img
+        img_out[:, :, i] = channel
+    if orig_ndim == 2:
+        img_out = img_out[:, :, 0]
+    return img_out
 
 
 def multi_scale_retinex(img, sigmas=[15, 80, 250], weights=[1/3, 1/3, 1/3]):
     """
     Multi-Scale Retinex (MSR) on [0, 1] float image.
     """
-    retinex = np.zeros_like(img, dtype=np.float32)
-    img_float = np.clip(img, 1e-6, 1.0)
+    img_float = np.clip(np.array(img, dtype=np.float32), 1e-6, 1.0)
+    retinex = np.zeros_like(img_float, dtype=np.float32)
     for sigma, weight in zip(sigmas, weights):
-        # Gaussian blur per channel
         blur = cv2.GaussianBlur(img_float, (0, 0), sigma)
+        if blur.ndim < img_float.ndim:
+            blur = np.expand_dims(blur, axis=-1)
         blur = np.clip(blur, 1e-6, 1.0)
         retinex += weight * (np.log(img_float) - np.log(blur))
     return retinex
+
 
 
 def msrcr(img, sigmas=[15, 80, 250], alpha=125.0, beta=46.0, low_clip=0.01, high_clip=0.99):
