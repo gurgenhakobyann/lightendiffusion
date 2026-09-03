@@ -33,12 +33,15 @@ class LLdataset:
                 low_dir = os.path.join(data_dir, "low")
                 high_dir = os.path.join(data_dir, "high")
 
-            train_dataset = UnpairedDynamicDataset(
-                low_dir=low_dir,
-                high_dir=high_dir,
-                patch_size=patch_size,
-                epoch_length=getattr(self.config.data, "epoch_length", 180000),
-            )
+            if os.path.isdir(low_dir) and os.path.isdir(high_dir):
+                train_dataset = UnpairedDynamicDataset(
+                    low_dir=low_dir,
+                    high_dir=high_dir,
+                    patch_size=patch_size,
+                    epoch_length=getattr(self.config.data, "epoch_length", 180000),
+                )
+            else:
+                train_dataset = None
         else:
             # Fallback to text filelist if available
             train_list_path = os.path.join(data_dir, f"{train_type}_train.txt")
@@ -61,12 +64,16 @@ class LLdataset:
             benchmark_dir = os.path.join(data_dir, "Test", val_type.upper())
             if not os.path.isdir(benchmark_dir):
                 benchmark_dir = os.path.join(data_dir, val_type.upper())
+            if not os.path.isdir(benchmark_dir):
+                benchmark_dir = os.path.join("/mnt/weka/ghakobyan/Test", val_type.upper())
             val_dataset = UnpairedBenchmarkDataset(benchmark_dir)
         elif "LSRW" in val_type:
             subset = "Huawei" if "Huawei" in val_type else "Nikon"
             lsrw_dir = os.path.join(data_dir, "LSRW", "Eval", "Eval", subset)
             if not os.path.isdir(lsrw_dir):
                 lsrw_dir = os.path.join(data_dir, subset)
+            if not os.path.isdir(lsrw_dir):
+                lsrw_dir = os.path.join("/mnt/weka/ghakobyan/LSRW/Eval/Eval", subset)
             val_dataset = LSRWDataset(lsrw_dir)
         else:
             # Default: LOLv1 validation
